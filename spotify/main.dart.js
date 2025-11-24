@@ -26808,13 +26808,14 @@ Q9:function Q9(a){this.a=a},
 Dg:function Dg(a){this.a=a},
 Y5:function Y5(a,b,c,d,e,f,g){var _=this
 _.e=null
-_.f=a
-_.r=b
-_.w=c
-_.x=d
-_.z=e
-_.Q=f
-_.as=g
+_.f=!0
+_.r=a
+_.w=b
+_.x=c
+_.y=d
+_.Q=e
+_.as=f
+_.at=g
 _.c=_.a=null},
 at_:function at_(a,b){this.a=a
 this.b=b},
@@ -89132,17 +89133,19 @@ A.bx("response was 200")
 g=B.cj.Ge(0,A.a0b(A.a_V(i)).eD(0,h),null)
 A.bx(J.bq(J.bq(J.bq(g,"images"),0),"url"))
 o.H(new A.avR(o,g))
-q=7
+s=!o.f?6:7
+break
+case 6:q=9
 j=A.hk("https://hybriidbox.pythonanywhere.com/album")
 i=A.aC(["Content-Type","application/json"],l,l)
-s=10
+s=12
 return A.P(A.aZZ(j,B.cj.U8(A.aC(["choice",$.p1],l,l),null),i),$async$kC)
-case 10:n=a0
+case 12:n=a0
 i=$.bF
 f=(i==null?$.bF=$.dm():i).df("[DEFAULT]")
 j=$.dl()
 A.d5(f,j,!0)
-i=o.z
+i=o.Q
 h=t.K
 A.dB(new A.cI(f)).of("postercreated",A.aC(["album"," "+$.p1+"/"+i.a.a],l,h))
 if($.p7){e=$.bF
@@ -89155,23 +89158,24 @@ A.dB(new A.cI(f)).of("posterOldTemp",A.aC(["album"," "+$.p1+"/"+i.a.a],l,h))}if(
 l=n
 A.bx(A.a0b(A.a_V(l.e)).eD(0,l.w))}else{l=n
 A.bx("Failed to log choice: "+A.a0b(A.a_V(l.e)).eD(0,l.w))}q=1
-s=9
+s=11
 break
-case 7:q=6
+case 9:q=8
 c=p.pop()
 m=A.an(c)
 A.bx("Error sending choice: "+A.n(m))
-s=9
+s=11
 break
-case 6:s=1
+case 8:s=1
 break
-case 9:s=4
+case 11:case 7:s=4
 break
 case 5:A.bx(A.a0b(A.a_V(i)).eD(0,h))
 A.bx("response was not 200")
 o.H(new A.avS())
 A.lk(B.jf,new A.avT(o),t.P)
-case 4:return A.B(null,r)
+case 4:o.f=!1
+return A.B(null,r)
 case 1:return A.A(p.at(-1),r)}})
 return A.C($async$kC,r)},
 aiF(a){var s=A.a0(a).i("ab<1,q>")
@@ -89193,7 +89197,7 @@ return A.P(A.jf(A.b([A.b__(new A.pn("assets/hbappslogo.png",null,null),p)],t.mo)
 case 2:q.H(new A.asZ())
 return A.B(null,r)}})
 return A.C($async$wQ,r)},
-N(g0){var s,r,q,p,o,n,m,l,k,j,i,h,g,f,e,d,c,b,a,a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,b0,b1,b2,b3,b4,b5,b6,b7,b8=this,b9=null,c0="Schyler",c1=100003308,c2="TempBold",c3=3199513780,c4=3202408672,c5=1237171388,c6=3203658739,c7="Enter Spotify Album ID Here",c8=3192933446,c9=3201813957,d0="Create Poster",d1="Tutorial",d2="Poster Size",d3=4280777245,d4=1445427741,d5=1157597184,d6=2286858268,d7=3193205167,d8="Poster Color",d9="Save Poster",e0="-",e1="+",e2="Album Title Size",e3="Song Height",e4="Song Width",e5="Shadow On/Off",e6="Cover Border On/Off",e7=3186281676,e8=4253093133,e9="Text Color",f0="c2",f1="Enter Track Title Here",f2=A.R(4292532954),f3=A.Y(b9,b9,B.h,b9,b9,B.AA,b9,1/0,b9,b9,b9,b9,1/0),f4=t.E,f5=A.ck(A.b([A.Y(b9,A.bW(A.bQ(A.b([A.bg(b9,b9,10),A.ND(A.ck(A.b([A.ND(A.Y(b9,A.aFr("assets/hbappslogo.png",B.d6),B.h,b9,b9,b9,b9,b9,b9,b9,b9,b9,50),1),A.aK(A.au("Album Title Size: "+A.n($.my+1),b9,b9,b9,b9,b9,!0,b9,A.am(b9,b9,B.f,b9,b9,b9,b9,b9,c0,b9,b9,10,b9,b9,b9,b9,b9,!0,b9,b9,b9,b9,b9,b9,b9,b9),b9,b9,b9),b9,b9),A.aK(A.au("Song Height: "+A.n($.dN),b9,b9,b9,b9,b9,!0,b9,A.am(b9,b9,B.f,b9,b9,b9,b9,b9,c0,b9,b9,10,b9,b9,b9,b9,b9,!0,b9,b9,b9,b9,b9,b9,b9,b9),b9,b9,b9),b9,b9),A.aK(A.au("Song Width: "+A.n($.jL),b9,b9,b9,b9,b9,!0,b9,A.am(b9,b9,B.f,b9,b9,b9,b9,b9,c0,b9,b9,10,b9,b9,b9,b9,b9,!0,b9,b9,b9,b9,b9,b9,b9,b9),b9,b9,b9),b9,b9)],f4),B.bY,B.p,B.o),0.7),A.bT(A.Y(b9,b9,B.h,b9,b9,b9,b9,b9,b9,b9,b9,b9,b9),1)],f4),B.p,B.o),!1),B.h,b9,b9,b9,b9,300,b9,b9,b9,b9,1/0)],f4),B.C,B.p,B.o),f6=$.jJ,f7=$.ia,f8=$.p9,f9=b8.as
+N(g0){var s,r,q,p,o,n,m,l,k,j,i,h,g,f,e,d,c,b,a,a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,b0,b1,b2,b3,b4,b5,b6,b7,b8=this,b9=null,c0="Schyler",c1=100003308,c2="TempBold",c3=3199513780,c4=3202408672,c5=1237171388,c6=3203658739,c7="Enter Spotify Album ID Here",c8=3192933446,c9=3201813957,d0="Create Poster",d1="Tutorial",d2="Poster Size",d3=4280777245,d4=1445427741,d5=1157597184,d6=2286858268,d7=3193205167,d8="Poster Color",d9="Save Poster",e0="-",e1="+",e2="Album Title Size",e3="Song Height",e4="Song Width",e5="Shadow On/Off",e6="Cover Border On/Off",e7=3186281676,e8=4253093133,e9="Text Color",f0="c2",f1="Enter Track Title Here",f2=A.R(4292532954),f3=A.Y(b9,b9,B.h,b9,b9,B.AA,b9,1/0,b9,b9,b9,b9,1/0),f4=t.E,f5=A.ck(A.b([A.Y(b9,A.bW(A.bQ(A.b([A.bg(b9,b9,10),A.ND(A.ck(A.b([A.ND(A.Y(b9,A.aFr("assets/hbappslogo.png",B.d6),B.h,b9,b9,b9,b9,b9,b9,b9,b9,b9,50),1),A.aK(A.au("Album Title Size: "+A.n($.my+1),b9,b9,b9,b9,b9,!0,b9,A.am(b9,b9,B.f,b9,b9,b9,b9,b9,c0,b9,b9,10,b9,b9,b9,b9,b9,!0,b9,b9,b9,b9,b9,b9,b9,b9),b9,b9,b9),b9,b9),A.aK(A.au("Song Height: "+A.n($.dN),b9,b9,b9,b9,b9,!0,b9,A.am(b9,b9,B.f,b9,b9,b9,b9,b9,c0,b9,b9,10,b9,b9,b9,b9,b9,!0,b9,b9,b9,b9,b9,b9,b9,b9),b9,b9,b9),b9,b9),A.aK(A.au("Song Width: "+A.n($.jL),b9,b9,b9,b9,b9,!0,b9,A.am(b9,b9,B.f,b9,b9,b9,b9,b9,c0,b9,b9,10,b9,b9,b9,b9,b9,!0,b9,b9,b9,b9,b9,b9,b9,b9),b9,b9,b9),b9,b9)],f4),B.bY,B.p,B.o),0.7),A.bT(A.Y(b9,b9,B.h,b9,b9,b9,b9,b9,b9,b9,b9,b9,b9),1)],f4),B.p,B.o),!1),B.h,b9,b9,b9,b9,300,b9,b9,b9,b9,1/0)],f4),B.C,B.p,B.o),f6=$.jJ,f7=$.ia,f8=$.p9,f9=b8.at
 if(f6){f6=$.e6
 s=A.aH(f6,5.8)
 r=$.xR()
@@ -89314,7 +89318,7 @@ if($.iT)p=30
 else p=!$.ti?50:40
 p=A.aG(p)
 o=A.R(c5)
-m=b8.Q
+m=b8.as
 l=A.aG(!$.ti?0:40)
 k=t.A
 i=A.ky(g0).G4(A.cd([B.b3,B.a4],k),!0)
@@ -89322,7 +89326,7 @@ h=A.bG(g0,b9,s).w
 g=A.aH(B.f,1.3)
 f=A.aG(30)
 e=A.R(c6)
-d=b8.z
+d=b8.Q
 f=A.Y(b9,new A.ad(B.T,A.i_(A.w7(!0,d,A.qh(b9,B.cg,b9,b9,b9,b9,b9,b9,!0,b9,b9,b9,b9,b9,b9,b9,b9,b9,b9,b9,b9,b9,b9,b9,b9,b9,b9,b9,b9,b9,b9,c7,b9,b9,b9,b9,b9,!0,b9,b9,b9,!0,!0,b9,b9,b9,b9,b9,b9,b9,b9,b9,b9,b9,b9,b9,b9),b9,b9,new A.auH(b8),b9),new A.i(0,-3)),b9),B.h,b9,b9,new A.ac(e,b9,g,f,B.r,b9,B.n),b9,40,b9,b9,b9,b9,250)
 g=A.aH(A.R(c8),2)
 e=A.aG(30)
@@ -89877,7 +89881,7 @@ A.auS.prototype={
 $0(){var s=0,r=A.D(t.H),q=this,p
 var $async$$0=A.z(function(a,b){if(a===1)return A.A(b,r)
 while(true)switch(s){case 0:p=q.a
-p.kC(p.z.a.a)
+p.kC(p.Q.a.a)
 return A.B(null,r)}})
 return A.C($async$$0,r)},
 $S:3}
@@ -89929,7 +89933,7 @@ $0(){var s=0,r=A.D(t.H),q=1,p=[],o=this,n,m,l,k,j,i,h
 var $async$$0=A.z(function(a,b){if(a===1){p.push(b)
 s=q}while(true)switch(s){case 0:q=3
 s=6
-return A.P(o.a.as.T0(0),$async$$0)
+return A.P(o.a.at.T0(0),$async$$0)
 case 6:n=b
 if(n!=null){m=B.iy.gyY().dg(n)
 j=A.aDW("data:application/octet-stream;base64,"+A.n(m))
@@ -90318,7 +90322,7 @@ A.ava.prototype={
 $0(){var s=0,r=A.D(t.H),q=this,p
 var $async$$0=A.z(function(a,b){if(a===1)return A.A(b,r)
 while(true)switch(s){case 0:p=q.a
-p.kC(p.z.a.a)
+p.kC(p.Q.a.a)
 return A.B(null,r)}})
 return A.C($async$$0,r)},
 $S:3}
@@ -90380,7 +90384,7 @@ $0(){var s=0,r=A.D(t.H),q=1,p=[],o=this,n,m,l,k,j,i,h
 var $async$$0=A.z(function(a,b){if(a===1){p.push(b)
 s=q}while(true)switch(s){case 0:q=3
 s=6
-return A.P(o.a.as.T0(0),$async$$0)
+return A.P(o.a.at.T0(0),$async$$0)
 case 6:n=b
 if(n!=null){m=B.iy.gyY().dg(n)
 j=A.aDW("data:application/octet-stream;base64,"+A.n(m))
