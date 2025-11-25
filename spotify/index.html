@@ -33,13 +33,7 @@
       overflow: hidden;
     }
 
-    /* AD IN TOP RIGHT CORNER */
-    #ad-overlay {
-      position: fixed;
-      top: 10px;
-      right: 10px;
-      z-index: 99999;
-    }
+   
 
     .inner img {
       width: 100%;
@@ -73,9 +67,19 @@
 
 <body>
   <!-- AD TOP RIGHT CORNER -->
-  <div id="ad-overlay" style="position: fixed; top: 10px; right: 10px; z-index: 99999;">
+  <div id="ad-overlay" style="
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  z-index: 99999;
+  background: #b6b6b6;
+  border: 2px solid black;
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+">
   <ins class="adsbygoogle"
-    style="display:inline-block;width:120px;height:60px"
+    style="display:inline-block;width:150px;height:150px;border-radius:8px;"
     data-ad-client="ca-pub-9625902598214914"
     data-ad-slot="9539847620"></ins>
   <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
