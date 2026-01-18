@@ -1,0 +1,149 @@
+@font-face {
+    font-family: 'Sinteca';
+    src: url('Sinteca-Bold.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+
+
+
+body {
+    background-color: rgb(25, 24, 25);
+    margin: 30px;
+    font-family: 'Sinteca', sans-serif;
+
+   
+}
+
+.ai-text {
+    position: absolute;
+    bottom: -14px;  /* sits visually below the image */
+    width: 100%;
+    text-align: center;
+    font-size: 9px;
+    color: #ffffff;
+    pointer-events: none; /* won’t block clicks */
+}
+
+
+.btext {
+
+  position: fixed;  /* or fixed if you want it to stay even when scrolling */
+  bottom: 0;
+  z-index: 10000;
+  margin-bottom: 30px;
+  
+  
+}
+.bottom-gradient {
+  position: fixed;  /* or fixed if you want it to stay even when scrolling */
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  height: 25vh; /* roughly 1/4 of the viewport height */
+  pointer-events: none; /* so it doesn’t block clicks */
+  background: linear-gradient(to top, black, transparent);
+}
+
+body::before,
+body::after {
+  content: "";
+  position: fixed;        /* stays in place when scrolling */
+  left: 0;
+  width: 100%;
+  height: 120px;          /* blur area height */
+  pointer-events: none;   /* clicks pass through */
+  z-index: 999;           /* above everything */
+  
+  backdrop-filter: blur(5px);  /* 👈 the magic blur */
+  -webkit-backdrop-filter: blur(5px);
+}
+
+body::before {
+  top: 0;  /* blur at top */
+  /* Fade effect using mask */
+  mask-image: linear-gradient(to bottom, rgb(255, 31, 31) 0%, transparent 100%);
+}
+
+body::after {
+  bottom: 0;  /* blur at bottom */
+  mask-image: linear-gradient(to top, black 0%, transparent 100%);
+}
+.image-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+   box-sizing: border-box;
+
+}
+
+.image-grid img {
+  
+  height: 130px;
+  
+  width: auto;
+  object-fit: cover;
+  /* border-radius: 10px; */
+ transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+  border: rgba(255, 255, 255, 0.164) solid 2px;
+  box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.125);
+}
+
+.image-grid img:hover {
+  transform: scale(1.1); /* grows 10% */
+}
+
+.overlay img:hover {
+  transform: scale(1.1); /* grows 10% */
+}
+
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0,0,0,0.5); /* semi-transparent dark overlay */
+  color: white;
+  flex-direction: column;
+  display: flex;
+  box-shadow: 0px black;
+  align-items: center;
+  /* border-radius: 10px; */
+  justify-content: center;
+  object-fit: cover;
+  font-weight: bold;
+  opacity: 0;
+  transition:  transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+  pointer-events: none;
+}
+.imgoverlap:hover img,
+.imgoverlap:hover .overlay {
+  transform: scale(1.05);
+}
+
+.imgoverlap img {
+  display: block;
+}
+
+.imgoverlap {
+    position: relative;
+}
+.imgoverlap:hover .overlay {
+  opacity: 1;
+ 
+  border: rgb(255, 255, 255) solid 2px;
+  box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.125);
+
+
+}
