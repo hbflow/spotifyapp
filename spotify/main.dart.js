@@ -91567,7 +91567,7 @@ a4=A.y(d3)
 d=new A.P(B.F,A.aQ(A.b([h,g,A.x(c8,A.bF(A.aO(A.b([b,c,A.au(A.a9(!1,!0,A.x(c8,A.a2(A.a1(h0,c8,c8,c8,c8,c8,!0,c8,A.a_(c8,c8,c8,c8,c8,c8,c8,c8,c9,c8,c8,15,c8,c8,c8,c8,c8,!0,c8,c8,c8,c8,c8,c8,c8,c8),c8,c8,c8),c8,c8),B.f,c8,c8,new A.Q(a4,c8,a2,a3,B.o,c8,B.i),c8,30,c8,c8,c8,c8,200),c8,!0,c8,c8,c8,c8,c8,c8,new A.awX(c7),c8,c8,c8),1)],n),B.l,B.k),d),B.f,c8,c8,c8,c8,c8,c8,c8,c8,c8,c8)],n),B.r,B.l,B.k),c8)
 h=d
 break $label1$1}if("Main"===c5){h=A.ik(i7).qj(A.cb([B.aM,B.a5],h),!0)
-g=A.bF(new A.P(B.x,A.a1("HybriidBox Spotify Poster Creator v4.3",c8,c8,c8,c8,c8,c8,c8,A.a_(c8,c8,B.Q,c8,c8,c8,c8,c8,c9,c8,c8,8,c8,c8,c8,c8,c8,!0,c8,c8,c8,c8,c8,c8,c8,c8),c8,c8,c8),c8),!0)
+g=A.bF(new A.P(B.x,A.a1("HybriidBox Spotify Poster Creator v4.31",c8,c8,c8,c8,c8,c8,c8,A.a_(c8,c8,B.Q,c8,c8,c8,c8,c8,c9,c8,c8,8,c8,c8,c8,c8,c8,!0,c8,c8,c8,c8,c8,c8,c8,c8),c8,c8,c8),c8),!0)
 d=A.bH(i7,c8,k).w
 c=A.Z(B.h,1.3)
 b=A.a0(30)
