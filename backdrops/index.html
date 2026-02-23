@@ -6,12 +6,30 @@
 
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+    <style>
+        /* === SECRET AD HIDE — triggered by triple-tap === */
+        body.clean .ad-slot,
+        body.clean .ad-wrapper,
+        body.clean ins.adsbygoogle,
+        body.clean [data-ad-slot] {
+            display: none !important;
+            max-height: 0 !important;
+            overflow: hidden !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            line-height: 0 !important;
+        }
+    </style>
 </head>
 
 <body>
 
-    <div style="text-align: center; padding: 10px;">
-    <div style="display: inline-block; border: 2px solid white; padding: 5px; line-height: 0;">
+    <div class="ad-wrapper" style="text-align: center; padding: 10px;">
+    <div class="ad-slot" style="display: inline-block; border: 2px solid white; padding: 5px; line-height: 0;">
         <ins class="adsbygoogle"
             style="display:inline-block;width:320px;height:50px"
             data-ad-client="ca-pub-9625902598214914"
@@ -28,8 +46,23 @@
     </div>
 
     <script>
+        // ========== SECRET TRIPLE-TAP ==========
+        // Triple-tap empty space to hide/show all ads. Only you know.
+        let _tc = 0, _tt = null;
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('a, button, img, .imgoverlap, ins')) return;
+            _tc++;
+            if (_tc === 1) _tt = setTimeout(() => { _tc = 0; }, 500);
+            if (_tc === 3) {
+                clearTimeout(_tt);
+                _tc = 0;
+                document.body.classList.toggle('clean');
+            }
+        });
+
         const grid = document.querySelector('.image-grid');
         const images = [
+           
             'RODEO (1).jpg',
             'astro_large.jpg',
             'astro_mini.jpg',
@@ -41,6 +74,7 @@
             'loveisrage.jpg',
             'loveisrage2.jpg',
             'luvtw (1).jpg',
+             'doom.jpg',
             'margiela (1).jpg',
             'yes (1).jpg',
             'drake.jpg',
@@ -58,11 +92,11 @@
         const repeatCount = 1;
 
         for (let i = 0; i < repeatCount; i++) {
-    images.forEach((src, index) => { // add index here
+    images.forEach((src, index) => {
 
-        // Insert ad after the first image of each repeat
         if (index === 0) {
             const adDiv = document.createElement('div');
+            adDiv.className = 'ad-slot';
             adDiv.style.display = 'inline-block';
             adDiv.style.width = '320px';
             adDiv.style.height = '50px';
