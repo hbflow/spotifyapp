@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html style="height: 100%;">
 <head>
+  <!-- escaladizzy -->
   <base href="/spotify/">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -28,6 +29,12 @@
   <script>
     const serviceWorkerVersion = "3482714590";
   </script>
+
+  <!-- Firebase JS SDK — required for cloud_firestore / firebase_analytics on web release builds -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-analytics-compat.js"></script>
+
   <script src="flutter.js" defer></script>
   <style>
     * {
