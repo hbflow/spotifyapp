@@ -9,6 +9,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Martian+Mono:wdth,wght@75..112.5,100..800&display=swap">
+<link rel="preload" href="assets/VarelaRound-Regular.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="preload" href="assets/hybriidbox-logo.png" as="image">
 <style>
 /* The floodlit stadium fills the screen. A billboard on a stand in the infield shows the cover art and
    title of the track that is playing on Last.fm; a small box along the bottom takes the username, with
@@ -154,26 +156,38 @@ body.is-idle .dock:not(:hover):not(:focus-within) { opacity: 0.22; }
   .dock { transition: none; }
 }
 
-/* ---------- Boot / status ---------- */
+/* ---------- Loading screen: the logo with "Loading…" under it, faded out on the first frame ---------- */
 .boot {
   position: fixed;
-  left: 50%;
-  top: 50%;
+  inset: 0;
   z-index: 3;
-  transform: translate(-50%, -50%);
-  padding: 10px 14px;
-  border-radius: 4px;
-  border: 1px solid var(--edge);
-  background: var(--panel);
-  font: 500 12px/1.4 var(--font-data);
-  font-stretch: 80%;
-  letter-spacing: 0.04em;
-  color: var(--mist);
-  max-width: min(420px, calc(100vw - 32px));
-  text-align: center;
-  pointer-events: none;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px;
+  background: var(--night);
+  transition: opacity 0.7s ease;
 }
-.boot.is-error { color: var(--chalk); border-color: var(--tartan); }
+.boot.is-done { opacity: 0; pointer-events: none; }
+.boot-logo { display: block; height: 30px; width: auto; user-select: none; -webkit-user-drag: none; }
+.boot-text {
+  margin: 0;
+  max-width: min(420px, 100%);
+  font: 400 14px/1.4 var(--font-round);
+  letter-spacing: 0.03em;
+  color: var(--mist);
+  text-align: center;
+  animation: boot-breathe 1.8s ease-in-out infinite;
+}
+@keyframes boot-breathe { 50% { opacity: 0.45; } }
+.boot.is-error .boot-text { color: var(--chalk); animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .boot { transition: none; }
+  .boot-text { animation: none; }
+}
 .sr-only {
   position: absolute;
   width: 1px;
@@ -199,7 +213,10 @@ body.is-idle .dock:not(:hover):not(:focus-within) { opacity: 0.22; }
 <img class="brand-logo" src="assets/hybriidbox-logo.png" alt="hybriidbox" width="75" height="14" draggable="false">
 </div>
 
-<div class="boot" id="boot" role="status">Switching on the floodlights…</div>
+<div class="boot" id="boot">
+  <img class="boot-logo" src="assets/hybriidbox-logo.png" alt="hybriidbox" width="162" height="30" draggable="false">
+  <p class="boot-text" id="bootText" role="status">Loading…</p>
+</div>
 <div class="sr-only" id="live" aria-live="polite"></div>
 
 <script type="importmap">
@@ -213,8 +230,8 @@ body.is-idle .dock:not(:hover):not(:focus-within) { opacity: 0.22; }
 
 <script type="module">
 const $ = (id) => document.getElementById(id);
-const bootEl = $('boot');
-const fail = (msg) => { bootEl.textContent = msg; bootEl.classList.add('is-error'); bootEl.hidden = false; };
+const bootEl = $('boot'), bootText = $('bootText');
+const fail = (msg) => { bootText.textContent = msg; bootEl.classList.remove('is-done'); bootEl.classList.add('is-error'); bootEl.hidden = false; };
 
 let THREE, OrbitControls, EffectComposer, RenderPass, UnrealBloomPass, ShaderPass, OutputPass;
 const ADDONS = [
@@ -1357,7 +1374,11 @@ function start() {
     if (firstFrame || turning) renderer.shadowMap.needsUpdate = true;
     composer.render(dt);
 
-    if (firstFrame) { firstFrame = false; bootEl.hidden = true; }
+    if (firstFrame) {
+      firstFrame = false;
+      bootEl.classList.add('is-done');
+      setTimeout(() => { if (!bootEl.classList.contains('is-error')) bootEl.hidden = true; }, 800);
+    }
 
     // keep the frame rate up on slower devices
     if (perfSkip > 0) { perfSkip -= dt; return; }
