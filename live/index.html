@@ -1,0 +1,1375 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>[hidden] { display: none !important; }</style>
+<title>hybriidbox live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Martian+Mono:wdth,wght@75..112.5,100..800&display=swap">
+<style>
+/* The floodlit stadium fills the screen. A billboard on a stand in the infield shows the cover art and
+   title of the track that is playing on Last.fm; a small box along the bottom takes the username, with
+   the hybriidbox logo under it. Drag to orbit, scroll or pinch to zoom. */
+@font-face {
+  font-family: "Varela Round";
+  src: url("assets/VarelaRound-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+:root {
+  --night: #060a13;                      /* sky and page ground */
+  --panel: rgba(7, 12, 24, 0.8);
+  --dock-bg: rgba(7, 12, 24, 0.74);      /* username box: barely see-through, over a light blur */
+  --dock-edge: rgba(255, 255, 255, 0.42);
+  --edge: rgba(200, 216, 255, 0.14);
+  --edge-strong: rgba(200, 216, 255, 0.34);
+  --chalk: #f2f4f7;                      /* lane-line white */
+  --mist: #9aa6bc;                       /* secondary text */
+  --tartan: #d24a32;                     /* track red */
+  --yellow: #ffc61a;                     /* fallback glow when a cover has no clear color */
+  --font-display: "Archivo", "Archivo Narrow", "Roboto Condensed", "Arial Narrow", sans-serif;
+  --font-data: "Martian Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-round: "Varela Round", "Arial Rounded MT Bold", "Helvetica Neue", Arial, sans-serif;   /* the username box */
+  color-scheme: dark;
+}
+
+html, body { height: 100%; }
+body {
+  margin: 0;
+  overflow: hidden;
+  background: var(--night);
+  color: var(--chalk);
+  font: 400 14px/1.45 var(--font-display);
+  -webkit-font-smoothing: antialiased;
+}
+
+#gl {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+  outline: none;
+}
+#gl:focus-visible { box-shadow: inset 0 0 0 2px var(--chalk); }
+
+/* ---------- Last.fm username box, with the logo under it ---------- */
+.bottom {
+  position: fixed;
+  left: 50%;
+  bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  z-index: 2;
+  transform: translateX(-50%);
+  width: min(440px, calc(100vw - 32px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  pointer-events: none;
+}
+.brand-logo {
+  display: block;
+  height: 14px;
+  width: auto;
+  opacity: 0.8;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.dock {
+  width: 100%;
+  box-sizing: border-box;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 7px 7px 16px;
+  background: var(--dock-bg);
+  border: 0.5px solid var(--dock-edge);   /* a hairline on high-density screens */
+  border-radius: 999px;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  transition: opacity 0.6s, border-color 0.15s;
+}
+.dock:focus-within { border-color: rgba(255, 255, 255, 0.75); }
+body.is-idle .dock:not(:hover):not(:focus-within) { opacity: 0.22; }
+.dock-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--mist);
+  opacity: 0.55;
+}
+.dock[data-state="live"] .dock-dot { background: var(--tartan); opacity: 1; box-shadow: 0 0 10px var(--tartan); animation: rec 1.6s ease-in-out infinite; }
+.dock[data-state="error"] .dock-dot { background: var(--yellow); opacity: 1; }
+@keyframes rec { 50% { opacity: 0.35; } }
+.dock-field { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.dock-top { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.dock label { flex: none; font: 400 12px/1 var(--font-round); letter-spacing: 0.02em; color: var(--mist); white-space: nowrap; }
+.dock-status {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font: 600 10px/1 var(--font-data);
+  font-stretch: 75%;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--chalk);
+  opacity: 0.8;
+}
+.dock-status::before { content: "· "; color: var(--mist); }
+.dock input {
+  min-width: 0;
+  margin: 0;
+  padding: 1px 0;
+  border: 0;
+  background: transparent;
+  color: var(--chalk);
+  font: 400 16px/1.2 var(--font-round);
+  outline: none;
+}
+.dock input::placeholder { color: var(--mist); opacity: 0.75; }
+.dock button {
+  flex: none;
+  font: 400 14px/1 var(--font-round);
+  letter-spacing: 0.01em;
+  color: var(--night);
+  background: var(--chalk);
+  border: 0;
+  border-radius: 999px;
+  padding: 11px 16px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+.dock button:hover { background: #ffffff; }
+.dock button:focus-visible { outline: 2px solid var(--chalk); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .dock[data-state="live"] .dock-dot { animation: none; }
+  .dock { transition: none; }
+}
+
+/* ---------- Boot / status ---------- */
+.boot {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 3;
+  transform: translate(-50%, -50%);
+  padding: 10px 14px;
+  border-radius: 4px;
+  border: 1px solid var(--edge);
+  background: var(--panel);
+  font: 500 12px/1.4 var(--font-data);
+  font-stretch: 80%;
+  letter-spacing: 0.04em;
+  color: var(--mist);
+  max-width: min(420px, calc(100vw - 32px));
+  text-align: center;
+  pointer-events: none;
+}
+.boot.is-error { color: var(--chalk); border-color: var(--tartan); }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+</style>
+</head>
+<body>
+<canvas id="gl" tabindex="0" aria-label="3D view of a floodlit stadium with a billboard showing the cover art and title of the track now playing. Drag to orbit; scroll or pinch to zoom."></canvas>
+
+<div class="bottom">
+<form class="dock" id="dock" data-state="off" autocomplete="off">
+  <span class="dock-dot" aria-hidden="true"></span>
+  <div class="dock-field">
+    <div class="dock-top"><label for="user">Last.fm</label><span class="dock-status" id="dockStatus" role="status">Not connected</span></div>
+    <input id="user" name="user" type="text" aria-label="Last.fm username" placeholder="Your username" spellcheck="false" autocapitalize="off" autocorrect="off" maxlength="60" enterkeyhint="go">
+  </div>
+  <button type="submit">Connect</button>
+</form>
+<img class="brand-logo" src="assets/hybriidbox-logo.png" alt="hybriidbox" width="75" height="14" draggable="false">
+</div>
+
+<div class="boot" id="boot" role="status">Switching on the floodlights…</div>
+<div class="sr-only" id="live" aria-live="polite"></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+const $ = (id) => document.getElementById(id);
+const bootEl = $('boot');
+const fail = (msg) => { bootEl.textContent = msg; bootEl.classList.add('is-error'); bootEl.hidden = false; };
+
+let THREE, OrbitControls, EffectComposer, RenderPass, UnrealBloomPass, ShaderPass, OutputPass;
+const ADDONS = [
+  'controls/OrbitControls.js',
+  'postprocessing/EffectComposer.js',
+  'postprocessing/RenderPass.js',
+  'postprocessing/UnrealBloomPass.js',
+  'postprocessing/ShaderPass.js',
+  'postprocessing/OutputPass.js',
+];
+async function loadThree() {
+  try {
+    return await Promise.all([import('three'), ...ADDONS.map((p) => import(`three/addons/${p}`))]);
+  } catch (err) {
+    // if the import map is unavailable, use jsDelivr's ESM build, which rewrites the bare "three" imports
+    const base = 'https://cdn.jsdelivr.net/npm/three@0.160.0';
+    return Promise.all([import(`${base}/+esm`), ...ADDONS.map((p) => import(`${base}/examples/jsm/${p}/+esm`))]);
+  }
+}
+try {
+  const mods = await loadThree();
+  THREE = mods[0];
+  ({ OrbitControls } = mods[1]);
+  ({ EffectComposer } = mods[2]);
+  ({ RenderPass } = mods[3]);
+  ({ UnrealBloomPass } = mods[4]);
+  ({ ShaderPass } = mods[5]);
+  ({ OutputPass } = mods[6]);
+} catch (err) {
+  fail('The 3D engine did not load. Check your connection, then reload the page.');
+  throw err;
+}
+
+// ---------------------------------------------------------------- Last.fm
+// The billboard follows a Last.fm user's scrobbles. The username comes from the box at the bottom (or
+// ?user= in the address) and is remembered in this browser.
+const LASTFM_KEY = 'fef398fcb430ff38d3fc782d15eb1f7f';
+const POLL_MS = 1000;   // Last.fm allows about 5 calls a second, so once a second is safe
+// Last.fm's grey star, sent for tracks that have no cover
+const NO_ART = '2a96cbd8b46e442fc41c2b86b821562f';
+
+start();
+
+function start() {
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const css = getComputedStyle(document.documentElement);
+  const tok = (name, fallback) => css.getPropertyValue(name).trim() || fallback;
+  const C = {
+    chalk: tok('--chalk', '#f2f4f7'),
+    mist: tok('--mist', '#9aa6bc'),
+    tartan: tok('--tartan', '#d24a32'),
+    yellow: tok('--yellow', '#ffc61a'),
+    night: tok('--night', '#060a13'),
+  };
+  const FONT_DISPLAY = '"Archivo", "Archivo Narrow", "Arial Narrow", sans-serif';
+  const FONT_DATA = '"Martian Mono", ui-monospace, Menlo, Consolas, monospace';
+
+  // ---------------------------------------------------------------- constants
+  const R_IN = 7.48, LH = 8.65;                  // 400 m oval: inner radius, half straight (1 unit = 4.88 m)
+  const FACE_W = 1.68, FACE_H = 2.1;             // the billboard's screen; its painting is FACE_PX
+  const FACE_PX = [1024, 1280];
+  const BEZEL = 0.07, DEPTH = 0.14;              // frame around the screen, and panel thickness
+  const FRAME_W = FACE_W + 2 * BEZEL, FRAME_H = FACE_H + 2 * BEZEL;
+  const POLE_H = 1.45;                           // ground to the bottom of the panel
+  const PANEL_Y = POLE_H + FRAME_H / 2;
+  const BB = 2;                                  // the billboard (panel and stand) is built at this scale
+  // Brightness of the cover-colored glow, measured the way the bloom measures it, so bright and dark covers
+  // glow alike: the thin outline on each face, the panel's side edges, and the soft halo. The bloom is all
+  // or nothing above 0.92, so the outline sits just over it (with the drift it never dips under) and its
+  // strength comes from how thin it is (OUTLINE). drift is how far the glow wanders (±3%).
+  const GLOW = { trim: 0.98, side: 0.3, halo: 0.3, drift: 0.03 };
+  const OUTLINE = 0.017;
+  const SRGB = THREE.SRGBColorSpace;
+
+  // ---------------------------------------------------------------- renderer
+  const canvas = $('gl');
+  let renderer;
+  try {
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+  } catch (err) {
+    fail('This view needs WebGL, and this browser has it turned off or does not support it.');
+    return;
+  }
+  canvas.addEventListener('webglcontextlost', (e) => {
+    e.preventDefault();
+    fail('The graphics card reset the 3D view. Reload the page to bring it back.');
+  });
+  let pixelRatio = Math.min(window.devicePixelRatio || 1, 1.6);
+  renderer.setPixelRatio(pixelRatio);
+  renderer.setSize(innerWidth, innerHeight, false);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.0;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
+  renderer.shadowMap.autoUpdate = false;
+  const maxAniso = Math.min(12, renderer.capabilities.getMaxAnisotropy());
+
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(new THREE.Color('#0b1222'), 0.0115);
+
+  const camera = new THREE.PerspectiveCamera(38, innerWidth / innerHeight, 0.1, 900);
+
+  // ---------------------------------------------------------------- helpers
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = (a + 0x6d2b79f5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  const rand = mulberry32(20261015);
+  const makeCanvas = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+  function speckle(g, rnd, x, y, w, h, n, colors, maxSize = 2.4) {
+    for (let i = 0; i < n; i++) {
+      g.fillStyle = colors[i % colors.length];
+      const s = 0.7 + rnd() * maxSize;
+      g.fillRect(x + rnd() * w, y + rnd() * h, s, s);
+    }
+  }
+  function setFont(g, weight, px, family, stretch) {
+    g.font = `${weight} ${px}px ${family}`;
+    if ('fontStretch' in g) g.fontStretch = stretch || 'normal';
+  }
+  // shrinks the type until the text fits maxW, then cuts it short with an ellipsis if it still does not
+  function fitText(g, text, weight, maxPx, minPx, family, stretch, maxW) {
+    let px = maxPx;
+    for (;;) {
+      setFont(g, weight, px, family, stretch);
+      if (g.measureText(text).width <= maxW || px <= minPx) break;
+      px -= Math.max(1, Math.round(px * 0.04));
+    }
+    let t = text;
+    if (g.measureText(t).width > maxW) {
+      while (t.length > 1 && g.measureText(t + '…').width > maxW) t = t.slice(0, -1);
+      t = t.trimEnd() + '…';
+    }
+    return t;
+  }
+  function canvasTex(c, { color = true, repeat = null } = {}) {
+    const t = new THREE.CanvasTexture(c);
+    if (color) t.colorSpace = SRGB;
+    if (repeat) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(repeat[0], repeat[1]); }
+    t.anisotropy = maxAniso;
+    return t;
+  }
+  const hdr = (hex, k) => new THREE.Color(hex).multiplyScalar(k);
+  const lerp = THREE.MathUtils.lerp;
+  const clamp = THREE.MathUtils.clamp;
+  const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+  function solid(geo, mat, { cast = true, receive = false } = {}) {
+    const m = new THREE.Mesh(geo, mat);
+    m.castShadow = cast; m.receiveShadow = receive;
+    return m;
+  }
+
+  // ---------------------------------------------------------------- textures
+  const laneCanvas = makeCanvas(256, 1024);
+  {
+    const g = laneCanvas.getContext('2d'), rnd = mulberry32(9);
+    g.fillStyle = '#b5402c'; g.fillRect(0, 0, 256, 1024);
+    speckle(g, rnd, 0, 0, 256, 1024, 26000, ['rgba(255,196,170,0.10)', 'rgba(60,8,0,0.22)', 'rgba(255,130,100,0.07)'], 2);
+    g.fillStyle = 'rgba(246,244,238,0.96)';
+    for (let k = 0; k <= 8; k++) {
+      const y = 1024 - (k / 8) * 1024;
+      const w = k === 0 ? 14 : 6;
+      g.fillRect(0, clamp(y - w / 2, 0, 1024 - w), 256, w);
+    }
+  }
+  const laneTex = canvasTex(laneCanvas);
+  laneTex.wrapS = THREE.RepeatWrapping;
+
+  const grassCanvas = makeCanvas(512, 512);
+  {
+    const g = grassCanvas.getContext('2d'), rnd = mulberry32(13);
+    g.fillStyle = '#163623'; g.fillRect(0, 0, 512, 256);
+    g.fillStyle = '#1b412b'; g.fillRect(0, 256, 512, 256);
+    speckle(g, rnd, 0, 0, 512, 512, 30000, ['rgba(120,190,110,0.06)', 'rgba(0,20,0,0.2)'], 2);
+  }
+  const grassTex = canvasTex(grassCanvas, { repeat: [1 / 4, 1 / 4] });
+
+  const seatCanvas = makeCanvas(512, 512);
+  {
+    // rows of seats with stair aisles; low contrast so it reads as seating, not noise
+    const g = seatCanvas.getContext('2d'), rnd = mulberry32(17);
+    g.fillStyle = '#0b0f17'; g.fillRect(0, 0, 512, 512);
+    const rows = 22, rh = 512 / rows;
+    const tones = ['#223152', '#26375c', '#1f2d4b'];
+    for (let r = 0; r < rows; r++) {
+      for (let x = 0; x < 512; x += 64) {
+        g.fillStyle = tones[Math.floor(rnd() * tones.length)];
+        g.fillRect(x, r * rh + rh * 0.3, 64, rh * 0.56);
+      }
+    }
+    g.fillStyle = '#2b3242';
+    for (const x of [0, 171, 342]) g.fillRect(x, 0, 7, 512);
+  }
+  const seatTex = canvasTex(seatCanvas);
+  seatTex.wrapS = THREE.RepeatWrapping;
+
+  const winCanvas = makeCanvas(512, 64);
+  {
+    const g = winCanvas.getContext('2d'), rnd = mulberry32(19);
+    g.fillStyle = '#0d1016'; g.fillRect(0, 0, 512, 64);
+    for (let x = 6; x < 512; x += 32) {
+      const on = rnd() < 0.78;
+      g.fillStyle = on ? (rnd() < 0.5 ? '#ffd394' : '#ffe6bf') : '#1a1f29';
+      g.fillRect(x, 20, 24, 20);
+    }
+  }
+  const winTex = canvasTex(winCanvas);
+  winTex.wrapS = THREE.RepeatWrapping;
+
+  const lampCanvas = makeCanvas(256, 144);
+  {
+    const g = lampCanvas.getContext('2d');
+    g.fillStyle = '#090b10'; g.fillRect(0, 0, 256, 144);
+    for (let j = 0; j < 3; j++) for (let i = 0; i < 6; i++) {
+      const x = 23 + i * 42, y = 26 + j * 46;
+      const rg = g.createRadialGradient(x, y, 2, x, y, 19);
+      rg.addColorStop(0, '#ffffff'); rg.addColorStop(0.55, '#e8f0ff'); rg.addColorStop(1, 'rgba(120,150,220,0)');
+      g.fillStyle = rg; g.beginPath(); g.arc(x, y, 19, 0, Math.PI * 2); g.fill();
+    }
+  }
+  const lampTex = canvasTex(lampCanvas);
+
+  const hurdleCanvas = makeCanvas(128, 32);
+  {
+    const g = hurdleCanvas.getContext('2d');
+    g.fillStyle = '#f4f4f0'; g.fillRect(0, 0, 128, 32);
+    g.fillStyle = '#111317';
+    for (let x = 0; x < 128; x += 32) g.fillRect(x + 16, 0, 16, 32);
+  }
+  const hurdleTex = canvasTex(hurdleCanvas);
+
+  const poolCanvas = makeCanvas(256, 256);
+  {
+    const g = poolCanvas.getContext('2d');
+    const rg = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+    rg.addColorStop(0, 'rgba(255,248,236,0.5)'); rg.addColorStop(0.5, 'rgba(255,248,236,0.16)'); rg.addColorStop(1, 'rgba(255,248,236,0)');
+    g.fillStyle = rg; g.fillRect(0, 0, 256, 256);
+  }
+  const poolTex = canvasTex(poolCanvas);
+
+  // the billboard's screen, the stadium LED ribbon and the video board (redrawn when the track changes)
+  const faceCanvas = makeCanvas(FACE_PX[0], FACE_PX[1]);
+  const faceTex = canvasTex(faceCanvas);
+  const ribbonCanvas = makeCanvas(2048, 64);
+  const ribbonTex = canvasTex(ribbonCanvas);
+  ribbonTex.wrapS = THREE.RepeatWrapping;
+  const boardCanvas = makeCanvas(1024, 416);
+  const boardSmall = makeCanvas(128, 52);
+  const boardTex = canvasTex(boardCanvas);
+
+  // stand-in cover: a sun going down over water, with film grain
+  function drawPlaceholderArt(c) {
+    const g = c.getContext('2d'), N = c.width, rnd = mulberry32(41);
+    const hy = N * 0.66;
+    const sky = g.createLinearGradient(0, 0, 0, hy);
+    sky.addColorStop(0, '#0d0b22'); sky.addColorStop(0.45, '#2b1238'); sky.addColorStop(0.8, '#8e2c3b'); sky.addColorStop(1, '#e0703f');
+    g.fillStyle = sky; g.fillRect(0, 0, N, hy);
+    for (let i = 0; i < 140; i++) {
+      g.fillStyle = `rgba(255,236,220,${(0.25 + rnd() * 0.6).toFixed(2)})`;
+      const s = rnd() < 0.12 ? 2.2 : 1.2;
+      g.fillRect(rnd() * N, rnd() * hy * 0.62, s, s);
+    }
+    const halo = g.createRadialGradient(N / 2, hy, 0, N / 2, hy, N * 0.6);
+    halo.addColorStop(0, 'rgba(255,170,90,0.6)'); halo.addColorStop(1, 'rgba(255,170,90,0)');
+    g.fillStyle = halo; g.fillRect(0, 0, N, hy);
+    const sun = g.createLinearGradient(0, hy - N * 0.25, 0, hy);
+    sun.addColorStop(0, '#ffe6a8'); sun.addColorStop(1, '#ff7343');
+    g.fillStyle = sun; g.beginPath(); g.arc(N / 2, hy, N * 0.25, Math.PI, 0); g.fill();
+    // water, and the sun's broken reflection on it
+    const sea = g.createLinearGradient(0, hy, 0, N);
+    sea.addColorStop(0, '#1b0e22'); sea.addColorStop(1, '#07060d');
+    g.fillStyle = sea; g.fillRect(0, hy, N, N - hy);
+    for (let i = 0; i < 12; i++) {
+      const y = hy + 6 + i * i * 1.45, w = N * 0.5 * (1 - i / 13) * (0.75 + rnd() * 0.5);
+      g.fillStyle = `rgba(255,150,84,${(0.7 * (1 - i / 12)).toFixed(2)})`;
+      g.fillRect(N / 2 - w / 2 + (rnd() - 0.5) * 20, y, w, 2 + i * 0.5);
+    }
+    speckle(g, rnd, 0, 0, N, N, 26000, ['rgba(255,255,255,0.05)', 'rgba(0,0,0,0.14)'], 1.4);
+    const vig = g.createRadialGradient(N / 2, N / 2, N * 0.3, N / 2, N / 2, N * 0.75);
+    vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,0.5)');
+    g.fillStyle = vig; g.fillRect(0, 0, N, N);
+  }
+  // center-crops any image to the square cover canvas
+  function drawCover(c, img) {
+    const g = c.getContext('2d'), N = c.width;
+    const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height, s = Math.min(w, h);
+    g.drawImage(img, (w - s) / 2, (h - s) / 2, s, s, 0, 0, N, N);
+  }
+  // the cover's most colorful tone, brightened, for the glow trim and the artist name
+  function accentOf(art) {
+    const s = makeCanvas(24, 24), g = s.getContext('2d', { willReadFrequently: true });
+    g.drawImage(art, 0, 0, 24, 24);
+    let d;
+    try { d = g.getImageData(0, 0, 24, 24).data; } catch (err) { return new THREE.Color(C.yellow); }
+    let r = 0, gr = 0, b = 0, wsum = 0;
+    for (let i = 0; i < d.length; i += 4) {
+      const R = d[i] / 255, G = d[i + 1] / 255, B = d[i + 2] / 255;
+      const mx = Math.max(R, G, B), sat = mx ? (mx - Math.min(R, G, B)) / mx : 0;
+      const w = sat * sat * mx + 0.002;
+      r += R * w; gr += G * w; b += B * w; wsum += w;
+    }
+    const c = new THREE.Color().setRGB(r / wsum, gr / wsum, b / wsum, SRGB);
+    const hsl = {};
+    c.getHSL(hsl, SRGB);
+    if (hsl.s < 0.12) return new THREE.Color(C.yellow);
+    return c.setHSL(hsl.h, Math.max(0.68, hsl.s), 0.6, SRGB);
+  }
+
+  // the small line above the artist, and the color of its dot
+  const KICKER = { now: ['NOW PLAYING', C.tartan], last: ['LAST PLAYED', C.mist], idle: ['STANDING BY', C.mist] };
+
+  function drawFace(tr) {
+    const g = faceCanvas.getContext('2d'), [W, Hh] = FACE_PX, m = 72, A = W - 2 * m;
+    g.save();
+    g.fillStyle = '#05070c'; g.fillRect(0, 0, W, Hh);
+    // a soft wash of the cover's colors behind everything
+    const s1 = makeCanvas(5, 5), s2 = makeCanvas(40, 40);
+    s1.getContext('2d').drawImage(tr.art, 0, 0, 5, 5);
+    const g2 = s2.getContext('2d');
+    g2.imageSmoothingQuality = 'high';
+    g2.drawImage(s1, 0, 0, 40, 40);
+    g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+    g.globalAlpha = 0.9; g.drawImage(s2, -W * 0.25, -Hh * 0.1, W * 1.5, Hh * 1.2); g.globalAlpha = 1;
+    const shade = g.createLinearGradient(0, 0, 0, Hh);
+    shade.addColorStop(0, 'rgba(5,7,12,0.1)'); shade.addColorStop(0.62, 'rgba(5,7,12,0.42)'); shade.addColorStop(1, 'rgba(5,7,12,0.82)');
+    g.fillStyle = shade; g.fillRect(0, 0, W, Hh);
+    speckle(g, mulberry32(5), 0, 0, W, Hh, 14000, ['rgba(255,255,255,0.025)', 'rgba(0,0,0,0.12)'], 1.6);
+    // cover art, lifted off the panel by a soft shadow
+    const cover = () => { g.beginPath(); if (g.roundRect) g.roundRect(m, m, A, A, 14); else g.rect(m, m, A, A); };
+    g.save(); g.shadowColor = 'rgba(0,0,0,0.6)'; g.shadowBlur = 48; g.shadowOffsetY = 18; g.fillStyle = '#000'; cover(); g.fill(); g.restore();
+    g.save(); cover(); g.clip(); g.drawImage(tr.art, m, m, A, A); g.restore();
+    g.strokeStyle = 'rgba(255,255,255,0.12)'; g.lineWidth = 2; cover(); g.stroke();
+    // now playing, artist, title
+    const [kicker, dot] = KICKER[tr.status];
+    g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+    let y = m + A + 74;
+    g.fillStyle = dot; g.beginPath(); g.arc(m + 9, y - 9, 9, 0, Math.PI * 2); g.fill();
+    setFont(g, 600, 24, FONT_DATA, 'condensed');
+    if ('letterSpacing' in g) g.letterSpacing = '5px';
+    g.fillStyle = 'rgba(242,244,247,0.72)'; g.fillText(kicker, m + 32, y);
+    if ('letterSpacing' in g) g.letterSpacing = '0px';
+    y += 70;
+    g.fillStyle = tr.accentCss;
+    g.fillText(fitText(g, tr.artist.toUpperCase(), 800, 56, 34, FONT_DISPLAY, 'condensed', A), m - 2, y);
+    y += 116;
+    g.fillStyle = C.chalk;
+    g.fillText(fitText(g, tr.title, 850, 124, 64, FONT_DISPLAY, 'extra-condensed', A), m - 4, y);
+    g.restore();
+    faceTex.needsUpdate = true;
+  }
+
+  function drawRibbon(tr) {
+    const g = ribbonCanvas.getContext('2d'), W = 2048, Hh = 64;
+    g.fillStyle = '#04060a'; g.fillRect(0, 0, W, Hh);
+    const [kicker, dot] = KICKER[tr.status];
+    const parts = [
+      [kicker, dot], ['   ', C.chalk],
+      [tr.artist.toUpperCase(), tr.accentCss], ['  —  ', C.mist], [tr.title.toUpperCase(), C.chalk],
+      ['     •     ', C.tartan],
+    ];
+    let px = 40, total;
+    do {
+      setFont(g, 800, px, FONT_DISPLAY, 'condensed');
+      total = parts.reduce((a, p) => a + g.measureText(p[0]).width, 0);
+      px -= 2;
+    } while (total > W - 40 && px > 20);
+    // repeat the line as often as it fits so the strip tiles around the stands without long gaps
+    const reps = Math.max(1, Math.floor(W / total)), span = W / reps;
+    g.textBaseline = 'middle';
+    for (let r = 0; r < reps; r++) {
+      let x = r * span + (span - total) / 2;
+      for (const [t, col] of parts) { g.fillStyle = col; g.fillText(t, x, Hh / 2 + 2); x += g.measureText(t).width; }
+    }
+    g.fillStyle = 'rgba(0,0,0,0.42)';
+    for (let i = 0; i < W; i += 4) g.fillRect(i, 0, 1, Hh);
+    for (let j = 0; j < Hh; j += 4) g.fillRect(0, j, W, 1);
+    ribbonTex.needsUpdate = true;
+  }
+  function drawBoard(tr) {
+    const sg = boardSmall.getContext('2d', { willReadFrequently: true });
+    sg.fillStyle = '#000'; sg.fillRect(0, 0, 128, 52);
+    sg.imageSmoothingEnabled = true;
+    sg.drawImage(tr.art, 3, 3, 46, 46);
+    sg.textBaseline = 'top'; sg.textAlign = 'left';
+    setFont(sg, 800, 9, FONT_DISPLAY, 'condensed');
+    const [kicker, dot] = KICKER[tr.status];
+    sg.fillStyle = dot; sg.fillText(kicker, 55, 4);
+    sg.fillStyle = '#ffffff';
+    sg.fillText(fitText(sg, tr.title.toUpperCase(), 800, 19, 10, FONT_DISPLAY, 'condensed', 70), 55, 16);
+    sg.fillStyle = tr.accentCss;
+    sg.fillText(fitText(sg, tr.artist.toUpperCase(), 700, 11, 8, FONT_DISPLAY, 'condensed', 70), 55, 38);
+    const data = sg.getImageData(0, 0, 128, 52).data;
+    const g = boardCanvas.getContext('2d');
+    g.fillStyle = '#030406'; g.fillRect(0, 0, 1024, 416);
+    for (let j = 0; j < 52; j++) {
+      for (let i = 0; i < 128; i++) {
+        const k = (j * 128 + i) * 4;
+        const r = data[k], gg = data[k + 1], b = data[k + 2];
+        g.fillStyle = Math.max(r, gg, b) > 40 ? `rgb(${r},${gg},${b})` : '#121722';
+        g.beginPath(); g.arc(i * 8 + 4, j * 8 + 4, 3.1, 0, Math.PI * 2); g.fill();
+      }
+    }
+    boardTex.needsUpdate = true;
+  }
+
+  // ---------------------------------------------------------------- environment map (floodlit reflections)
+  {
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    const env = new THREE.Scene();
+    const skyMat = new THREE.ShaderMaterial({
+      side: THREE.BackSide,
+      depthWrite: false,
+      uniforms: {
+        top: { value: new THREE.Color('#05070d') },
+        mid: { value: new THREE.Color('#1c2438') },
+        bot: { value: new THREE.Color('#2a1613') },
+      },
+      vertexShader: 'varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+      fragmentShader: 'uniform vec3 top; uniform vec3 mid; uniform vec3 bot; varying vec3 vP; void main(){ float y = vP.y; vec3 c = y > 0.0 ? mix(mid, top, smoothstep(0.0, 0.6, y)) : mix(mid, bot, smoothstep(0.0, -0.25, y)); gl_FragColor = vec4(c, 1.0); }',
+    });
+    env.add(new THREE.Mesh(new THREE.SphereGeometry(60, 32, 16), skyMat));
+    const panel = new THREE.PlaneGeometry(13, 5);
+    const bright = new THREE.MeshBasicMaterial({ color: hdr('#ffffff', 14), side: THREE.DoubleSide });
+    for (const [sx, sz] of [[-1, 1], [1, 1], [1, -1], [-1, -1]]) {
+      const m = new THREE.Mesh(panel, bright);
+      m.position.set(sx * 30, 26, sz * 30); m.lookAt(0, 0, 0); env.add(m);
+    }
+    const soft = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), new THREE.MeshBasicMaterial({ color: hdr('#dfe7ff', 1.4), side: THREE.DoubleSide }));
+    soft.position.y = 45; soft.rotation.x = Math.PI / 2; env.add(soft);
+    const ring = new THREE.Mesh(new THREE.RingGeometry(18, 40, 64), new THREE.MeshBasicMaterial({ color: new THREE.Color('#7a2418').multiplyScalar(0.7), side: THREE.DoubleSide }));
+    ring.rotation.x = -Math.PI / 2; ring.position.y = -6; env.add(ring);
+    scene.environment = pmrem.fromScene(env, 0.035).texture;
+    pmrem.dispose();
+  }
+
+  // ---------------------------------------------------------------- materials
+  const M = {
+    steel: new THREE.MeshStandardMaterial({ color: '#4c525b', metalness: 0.95, roughness: 0.3 }),
+    steelDark: new THREE.MeshStandardMaterial({ color: '#2a2e35', metalness: 0.85, roughness: 0.45 }),
+    concrete: new THREE.MeshStandardMaterial({ color: '#2a2d33', roughness: 0.92, envMapIntensity: 0.3 }),
+    grass: new THREE.MeshStandardMaterial({ map: grassTex, roughness: 1, envMapIntensity: 0.25 }),
+    lanes: new THREE.MeshStandardMaterial({ map: laneTex, roughness: 0.9, envMapIntensity: 0.3 }),
+    runoff: new THREE.MeshStandardMaterial({ color: '#a63a28', roughness: 0.92, envMapIntensity: 0.3 }),
+    apron: new THREE.MeshStandardMaterial({ color: '#1b1e24', roughness: 0.95, envMapIntensity: 0.25 }),
+    seats: new THREE.MeshStandardMaterial({ map: seatTex, roughness: 0.95, envMapIntensity: 0.2 }),
+    wall: new THREE.MeshStandardMaterial({ color: '#14171d', roughness: 0.9, envMapIntensity: 0.2 }),
+    roof: new THREE.MeshStandardMaterial({ color: '#13161c', roughness: 0.8, metalness: 0.4 }),
+    ribbon: new THREE.MeshBasicMaterial({ map: ribbonTex, color: new THREE.Color().setScalar(2.1) }),
+    windows: new THREE.MeshBasicMaterial({ map: winTex, color: new THREE.Color().setScalar(1.2) }),
+    roofStrip: new THREE.MeshBasicMaterial({ color: hdr('#e6eeff', 5) }),
+    lamps: new THREE.MeshBasicMaterial({ map: lampTex, color: new THREE.Color().setScalar(7) }),
+    board: new THREE.MeshBasicMaterial({ map: boardTex, color: new THREE.Color().setScalar(1.7) }),
+    hurdle: new THREE.MeshStandardMaterial({ map: hurdleTex, roughness: 0.6 }),
+    whitePaint: new THREE.MeshStandardMaterial({ color: '#f2f1ec', roughness: 0.8 }),
+    // billboard: a lit screen in a dark frame whose edges glow in the cover's color
+    face: new THREE.MeshBasicMaterial({ map: faceTex, color: new THREE.Color().setScalar(0.95) }),
+    frame: new THREE.MeshStandardMaterial({ color: '#1d2027', metalness: 0.8, roughness: 0.38 }),
+    trim: new THREE.MeshBasicMaterial({ color: new THREE.Color(C.yellow) }),
+    side: new THREE.MeshBasicMaterial({ color: new THREE.Color(C.yellow) }),
+    halo: new THREE.MeshBasicMaterial({ color: new THREE.Color(C.yellow), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }),
+  };
+
+  // ---------------------------------------------------------------- lights
+  const hemi = new THREE.HemisphereLight(new THREE.Color('#8ea6ff'), new THREE.Color('#17240f'), 0.34);
+  scene.add(hemi);
+  const key = new THREE.DirectionalLight(new THREE.Color('#f4f7ff'), 2.5);
+  key.position.set(-9, 11, 10);
+  key.target.position.set(0, 1.8 * BB, 0);
+  key.castShadow = true;
+  key.shadow.mapSize.set(2048, 2048);
+  Object.assign(key.shadow.camera, { left: -3.2 * BB, right: 3.2 * BB, top: 3.2 * BB, bottom: -3.2 * BB, near: 4, far: 40 });
+  key.shadow.camera.updateProjectionMatrix();
+  key.shadow.bias = -0.0005;
+  key.shadow.normalBias = 0.02;
+  key.shadow.radius = 5;
+  scene.add(key, key.target);
+  const rim = new THREE.DirectionalLight(new THREE.Color('#8fb6ff'), 0.9);
+  rim.position.set(8, 6, -7);
+  scene.add(rim);
+
+  // ---------------------------------------------------------------- sky and stars
+  {
+    const sky = new THREE.Mesh(
+      new THREE.SphereGeometry(420, 48, 24),
+      new THREE.ShaderMaterial({
+        side: THREE.BackSide,
+        depthWrite: false,
+        fog: false,
+        uniforms: {
+          zen: { value: new THREE.Color('#03050b') },
+          hor: { value: new THREE.Color('#121a2c') },
+          glow: { value: new THREE.Color('#3b2a2c') },
+          gnd: { value: new THREE.Color('#05070b') },
+        },
+        vertexShader: 'varying vec3 vD; void main(){ vD = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+        fragmentShader: 'uniform vec3 zen; uniform vec3 hor; uniform vec3 glow; uniform vec3 gnd; varying vec3 vD; void main(){ float y = vD.y; vec3 c = mix(hor, zen, smoothstep(0.0, 0.5, y)); c += glow * exp(-abs(y) * 16.0) * 0.9; if (y < 0.0) c = mix(hor, gnd, smoothstep(0.0, -0.15, y)); gl_FragColor = vec4(c, 1.0); }',
+      })
+    );
+    sky.renderOrder = -10;
+    scene.add(sky);
+    const n = 1100, pos = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {
+      const th = rand() * Math.PI * 2, y = 0.08 + rand() * 0.92, r = Math.sqrt(1 - y * y);
+      pos.set([Math.cos(th) * r * 400, y * 400, Math.sin(th) * r * 400], i * 3);
+    }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    scene.add(new THREE.Points(g, new THREE.PointsMaterial({ color: new THREE.Color('#cdd7ff'), size: 1.5, sizeAttenuation: false, transparent: true, opacity: 0.7, depthWrite: false, fog: false })));
+  }
+
+  // ---------------------------------------------------------------- stadium
+  const pathSamples = (() => {
+    const pts = [], n = 72;
+    pts.push({ x: R_IN, z: LH, nx: 1, nz: 0 });
+    for (let i = 0; i <= n; i++) {
+      const a = (Math.PI * i) / n, c = Math.cos(a), s = Math.sin(a);
+      pts.push({ x: R_IN * c, z: -LH - R_IN * s, nx: c, nz: -s });
+    }
+    for (let i = 0; i <= n; i++) {
+      const a = Math.PI + (Math.PI * i) / n, c = Math.cos(a), s = Math.sin(a);
+      pts.push({ x: R_IN * c, z: LH - R_IN * s, nx: c, nz: -s });
+    }
+    return pts;
+  })();
+
+  function ringStrip(d0, h0, d1, h1, uLen, { uAt = 0, reverseU = false, seamless = false } = {}) {
+    const n = pathSamples.length;
+    const pos = new Float32Array(n * 6), uv = new Float32Array(n * 4);
+    const dRef = uAt === 1 ? d1 : uAt === 0.5 ? (d0 + d1) / 2 : d0;
+    let acc = 0, px = null, pz = null;
+    const us = [];
+    for (let i = 0; i < n; i++) {
+      const s = pathSamples[i];
+      const rx = s.x + s.nx * dRef, rz = s.z + s.nz * dRef;
+      if (px !== null) acc += Math.hypot(rx - px, rz - pz);
+      px = rx; pz = rz;
+      us.push(acc);
+      pos.set([s.x + s.nx * d0, h0, s.z + s.nz * d0, s.x + s.nx * d1, h1, s.z + s.nz * d1], i * 6);
+    }
+    let k = 1 / uLen;
+    if (seamless) { const reps = Math.max(1, Math.round(acc / uLen)); k = reps / acc; }
+    for (let i = 0; i < n; i++) {
+      const u = (reverseU ? acc - us[i] : us[i]) * k;
+      uv.set([u, 0, u, 1], i * 4);
+    }
+    const idx = [];
+    for (let i = 0; i < n - 1; i++) { const a = i * 2, b = a + 1, c = a + 2, d = a + 3; idx.push(a, b, c, b, d, c); }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+    geo.setIndex(idx);
+    geo.computeVertexNormals();
+    return geo;
+  }
+  const pathCum = (() => {
+    // cumulative length along the middle of the seating bowl, so points spread evenly by distance
+    const d = 8.5, out = [0];
+    for (let i = 1; i < pathSamples.length; i++) {
+      const a = pathSamples[i - 1], b = pathSamples[i];
+      out.push(out[i - 1] + Math.hypot(b.x + b.nx * d - (a.x + a.nx * d), b.z + b.nz * d - (a.z + a.nz * d)));
+    }
+    return out;
+  })();
+  function pathPoint(t, d) {
+    // t in [0,1) of the way around the bowl, offset by d from the inner edge of the track
+    const L = t * pathCum[pathCum.length - 1];
+    let i = 0;
+    while (i < pathCum.length - 2 && pathCum[i + 1] < L) i++;
+    const w = (L - pathCum[i]) / Math.max(1e-6, pathCum[i + 1] - pathCum[i]);
+    const a = pathSamples[i], b = pathSamples[i + 1];
+    const x = lerp(a.x, b.x, w), z = lerp(a.z, b.z, w);
+    let nx = lerp(a.nx, b.nx, w), nz = lerp(a.nz, b.nz, w);
+    const l = Math.hypot(nx, nz) || 1; nx /= l; nz /= l;
+    return [x + nx * d, z + nz * d];
+  }
+
+  const stadium = new THREE.Group();
+  scene.add(stadium);
+  let pool;
+  {
+    // infield grass
+    const shape = new THREE.Shape();
+    pathSamples.forEach((s, i) => (i ? shape.lineTo(s.x, -s.z) : shape.moveTo(s.x, -s.z)));
+    const infieldGeo = new THREE.ShapeGeometry(shape);
+    infieldGeo.rotateX(-Math.PI / 2);
+    const infield = new THREE.Mesh(infieldGeo, M.grass);
+    infield.receiveShadow = false;
+    // the billboard's shadow lands on a see-through catcher, so it darkens the grass instead of blacking it out
+    const catcher = new THREE.Mesh(new THREE.PlaneGeometry(14 * BB, 14 * BB), new THREE.ShadowMaterial({ opacity: 0.42 }));
+    catcher.rotation.x = -Math.PI / 2;
+    catcher.position.y = 0.006;
+    catcher.receiveShadow = true;
+    stadium.add(catcher);
+    stadium.add(infield);
+    // light pool around the billboard, tinted by the cover
+    pool = new THREE.Mesh(new THREE.PlaneGeometry(9 * BB, 9 * BB), new THREE.MeshBasicMaterial({ map: poolTex, transparent: true, opacity: 0.4, depthWrite: false, blending: THREE.AdditiveBlending }));
+    pool.rotation.x = -Math.PI / 2; pool.position.y = 0.004;
+    stadium.add(pool);
+    // track, run-off, apron
+    const lanes = new THREE.Mesh(ringStrip(0, 0.002, 2.0, 0.002, 0.5), M.lanes);
+    lanes.receiveShadow = true;
+    stadium.add(lanes);
+    stadium.add(new THREE.Mesh(ringStrip(2.0, 0.002, 2.45, 0.002, 1), M.runoff));
+    stadium.add(new THREE.Mesh(ringStrip(2.45, 0.0, 4.2, 0.0, 1), M.apron));
+    // LED ribbon on the front wall of the stands
+    stadium.add(new THREE.Mesh(ringStrip(4.2, 0.0, 4.2, 0.48, 0.48 * 32, { reverseU: true, seamless: true }), M.ribbon));
+    stadium.add(new THREE.Mesh(ringStrip(4.2, 0.48, 4.45, 0.5, 1), M.wall));
+    // seating bowl
+    stadium.add(new THREE.Mesh(ringStrip(4.45, 0.5, 12.5, 6.8, 4.0, { uAt: 0.5 }), M.seats));
+    // suites and the top rim
+    stadium.add(new THREE.Mesh(ringStrip(12.5, 6.8, 12.5, 8.4, 4.2, { seamless: true }), M.windows));
+    stadium.add(new THREE.Mesh(ringStrip(12.5, 8.4, 13.3, 8.4, 1), M.wall));
+    stadium.add(new THREE.Mesh(ringStrip(13.3, 8.4, 13.3, 0, 1), M.wall));
+    // finish line across the right-hand straight
+    const finish = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 0.014), M.whitePaint);
+    finish.rotation.x = -Math.PI / 2; finish.position.set(R_IN + 1.0, 0.004, -LH + 0.25);
+    stadium.add(finish);
+    // roofs over both straights, with strip lights under the front edge
+    for (const side of [-1, 1]) {
+      const roof = new THREE.Mesh(new THREE.BoxGeometry(8.4, 0.3, 2 * LH + 3), M.roof);
+      roof.position.set(side * (R_IN + 10.6), 10.9, 0);
+      roof.rotation.z = side * -0.07;
+      stadium.add(roof);
+      const strip = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.07, 2 * LH + 3), M.roofStrip);
+      strip.position.set(side * (R_IN + 6.5), 10.98, 0);
+      stadium.add(strip);
+      for (let i = -2; i <= 2; i++) {
+        const col = new THREE.Mesh(new THREE.BoxGeometry(0.25, 2.6, 0.25), M.wall);
+        col.position.set(side * (R_IN + 13.0), 9.7, i * (LH / 2.2));
+        stadium.add(col);
+      }
+    }
+    // floodlight masts, lamp heads and beams
+    const beamLen = 30;
+    const beamGeo = new THREE.ConeGeometry(6.0, beamLen, 40, 1, true);
+    beamGeo.translate(0, -beamLen / 2, 0);
+    beamGeo.rotateX(-Math.PI / 2);
+    const beamMat = new THREE.ShaderMaterial({
+      uniforms: { uColor: { value: new THREE.Color('#dfe8ff') }, uOpacity: { value: 0.05 }, uLen: { value: beamLen } },
+      vertexShader: 'uniform float uLen; varying float vA; varying vec3 vN; varying vec3 vV; void main(){ vA = clamp(position.z / uLen, 0.0, 1.0); vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalMatrix * normal; vV = -mv.xyz; gl_Position = projectionMatrix * mv; }',
+      // the cosine is guarded so a zero-length vector can never produce an invalid pixel
+      fragmentShader: 'uniform vec3 uColor; uniform float uOpacity; varying float vA; varying vec3 vN; varying vec3 vV; void main(){ float l = length(vN) * length(vV); float f = l > 1e-6 ? min(1.0, abs(dot(vN, vV)) / l) : 0.0; float a = pow(f, 2.4) * pow(1.0 - vA, 1.5) * uOpacity; gl_FragColor = vec4(uColor, a); }',
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+    });
+    const headGeo = new THREE.BoxGeometry(3.6, 2.1, 0.3);
+    const lampGeo = new THREE.PlaneGeometry(3.4, 1.9);
+    for (const [sx, sz] of [[-1, 1], [1, 1], [1, -1], [-1, -1]]) {
+      const x = sx * 17.6, z = sz * 20.6, h = 14.5;
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.24, h, 12), M.steelDark);
+      pole.position.set(x, h / 2, z);
+      stadium.add(pole);
+      const head = new THREE.Group();
+      head.position.set(x, h + 0.6, z);
+      head.lookAt(0, 0, 0);
+      head.add(new THREE.Mesh(headGeo, M.wall));
+      const lamps = new THREE.Mesh(lampGeo, M.lamps);
+      lamps.position.z = 0.16;
+      head.add(lamps);
+      stadium.add(head);
+      const beam = new THREE.Mesh(beamGeo, beamMat);
+      beam.position.copy(head.position);
+      beam.lookAt(sx * -1.5, 0, sz * -1.5);
+      stadium.add(beam);
+    }
+    // video board behind the far bend
+    const boardZ = -(LH + R_IN + 13.9);
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(9.8, 4.3, 0.4), M.wall);
+    frame.position.set(0, 10.9, boardZ);
+    stadium.add(frame);
+    const screen = new THREE.Mesh(new THREE.PlaneGeometry(9.2, 3.74), M.board);
+    screen.position.set(0, 10.9, boardZ + 0.21);
+    stadium.add(screen);
+    for (const sx of [-3.2, 3.2]) {
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.35, 8.8, 0.35), M.wall);
+      leg.position.set(sx, 4.4, boardZ - 0.1);
+      stadium.add(leg);
+    }
+    // two flights of hurdles on the left-hand straight
+    const boards = new THREE.InstancedMesh(new THREE.BoxGeometry(0.235, 0.05, 0.012), M.hurdle, 16);
+    const posts = new THREE.InstancedMesh(new THREE.BoxGeometry(0.01, 0.2, 0.01), M.steel, 32);
+    const feet = new THREE.InstancedMesh(new THREE.BoxGeometry(0.012, 0.012, 0.15), M.steel, 32);
+    const mtx = new THREE.Matrix4();
+    let bi = 0, pi = 0;
+    for (const zRow of [-4.2, 1.6]) {
+      for (let k = 0; k < 8; k++) {
+        const x = -(R_IN + (k + 0.5) * 0.25);
+        mtx.makeTranslation(x, 0.205, zRow); boards.setMatrixAt(bi++, mtx);
+        for (const dx of [-0.112, 0.112]) {
+          mtx.makeTranslation(x + dx, 0.1, zRow); posts.setMatrixAt(pi, mtx);
+          mtx.makeTranslation(x + dx, 0.006, zRow - 0.06); feet.setMatrixAt(pi, mtx);
+          pi++;
+        }
+      }
+    }
+    stadium.add(boards, posts, feet);
+  }
+
+  // crowd in the stands, with camera flashes
+  const crowdMat = new THREE.ShaderMaterial({
+    uniforms: { uTime: { value: 0 }, uScale: { value: 600 } },
+    vertexShader: `
+      attribute vec3 aColor; attribute float aSeed;
+      uniform float uTime; uniform float uScale;
+      varying vec3 vColor; varying float vFlash;
+      float hash(float n){ return fract(sin(n) * 43758.5453123); }
+      void main(){
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        float tick = floor(uTime * 9.0);
+        float h = hash(aSeed * 12.9898 + tick * 78.233);
+        float f = step(0.9992, h) * (1.0 - fract(uTime * 9.0));
+        vFlash = f; vColor = aColor;
+        gl_PointSize = min(48.0, (0.036 + f * 0.22) * uScale / max(1.0, -mv.z));
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: `
+      varying vec3 vColor; varying float vFlash;
+      void main(){
+        vec2 d = gl_PointCoord - 0.5; float r = length(d);
+        if (r > 0.5) discard;
+        float s = smoothstep(0.5, 0.05, r);
+        vec3 col = vColor * 0.55 + vec3(1.0, 0.97, 0.92) * vFlash * 14.0;
+        gl_FragColor = vec4(col, s);
+      }`,
+    transparent: true,
+    depthWrite: false,
+  });
+  {
+    const n = 2600, pos = new Float32Array(n * 3), col = new Float32Array(n * 3), seed = new Float32Array(n);
+    const palette = ['#2b3a5c', '#5a2a2a', '#7d8696', '#c9c2b4', '#23304a', '#3c4f74', '#8a3b30'].map((h) => new THREE.Color(h));
+    const rows = 22;
+    for (let i = 0; i < n; i++) {
+      const t = rand();
+      const row = Math.floor(rand() * rows), q = (row + 0.55) / rows;
+      const d = lerp(4.45, 12.5, q), h = lerp(0.5, 6.8, q) + 0.07;
+      const [x, z] = pathPoint(t, d);
+      pos.set([x, h, z], i * 3);
+      const c = palette[Math.floor(rand() * palette.length)];
+      col.set([c.r, c.g, c.b], i * 3);
+      seed[i] = rand() * 1000;
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    g.setAttribute('aColor', new THREE.BufferAttribute(col, 3));
+    g.setAttribute('aSeed', new THREE.BufferAttribute(seed, 1));
+    scene.add(new THREE.Points(g, crowdMat));
+  }
+
+  // ---------------------------------------------------------------- the billboard
+  const billboard = new THREE.Group();
+  billboard.scale.setScalar(BB);
+  scene.add(billboard);
+  {
+    // stand: base plate with a painted white ring, a stout post, and a collar and saddle under the panel
+    const base = solid(new THREE.CylinderGeometry(0.5, 0.56, 0.05, 64), M.concrete, { cast: false, receive: true });
+    base.position.y = 0.025;
+    const ring = solid(new THREE.TorusGeometry(0.535, 0.012, 8, 128), M.whitePaint, { cast: false });
+    ring.rotation.x = Math.PI / 2; ring.position.y = 0.052;
+    const foot = solid(new THREE.CylinderGeometry(0.21, 0.25, 0.08, 48), M.steelDark, { receive: true });
+    foot.position.y = 0.09;
+    const postH = POLE_H - 0.1 - 0.13;
+    const post = solid(new THREE.CylinderGeometry(0.11, 0.14, postH, 48), M.steel);
+    post.position.y = 0.13 + postH / 2;
+    const collar = solid(new THREE.CylinderGeometry(0.17, 0.12, 0.06, 48), M.steelDark);
+    collar.position.y = POLE_H - 0.07;
+    const saddle = solid(new THREE.BoxGeometry(0.8, 0.04, DEPTH + 0.08), M.steelDark);
+    saddle.position.y = POLE_H - 0.02;
+    billboard.add(base, ring, foot, post, collar, saddle);
+  }
+  // the panel turns on the post when the track changes; both sides show the same screen
+  const panel = new THREE.Group();
+  panel.position.y = PANEL_Y;
+  billboard.add(panel);
+  {
+    // box faces: +x, −x, +y, −y are the softly lit edges; front and back are the frame
+    const box = solid(new THREE.BoxGeometry(FRAME_W, FRAME_H, DEPTH), [M.side, M.side, M.side, M.side, M.frame, M.frame]);
+    panel.add(box);
+    const faceGeo = new THREE.PlaneGeometry(FACE_W, FACE_H);
+    for (const s of [1, -1]) {
+      const face = new THREE.Mesh(faceGeo, M.face);
+      face.position.z = s * (DEPTH / 2 + 0.002);
+      if (s < 0) face.rotation.y = Math.PI;
+      panel.add(face);
+    }
+    // a glowing outline around the edge of each side
+    const ow = FRAME_W / 2, oh = FRAME_H / 2, t = OUTLINE;
+    const outline = new THREE.Shape([[-ow, -oh], [ow, -oh], [ow, oh], [-ow, oh]].map(([x, y]) => new THREE.Vector2(x, y)));
+    outline.holes.push(new THREE.Path([[-ow + t, -oh + t], [-ow + t, oh - t], [ow - t, oh - t], [ow - t, -oh + t]].map(([x, y]) => new THREE.Vector2(x, y))));
+    const outlineGeo = new THREE.ShapeGeometry(outline);
+    for (const s of [1, -1]) {
+      const m = new THREE.Mesh(outlineGeo, M.trim);
+      m.position.z = s * (DEPTH / 2 + 0.003);
+      if (s < 0) m.rotation.y = Math.PI;
+      panel.add(m);
+    }
+    // a soft halo around the panel; the box hides its middle, so only the falloff past the edges shows
+    const HALO = 0.75, hw = FRAME_W + 2 * HALO, hh = FRAME_H + 2 * HALO;
+    const hc = makeCanvas(512, Math.round((512 * hh) / hw)), hg = hc.getContext('2d'), k = hc.width / hw;
+    const rw = FRAME_W * k, rh = FRAME_H * k, off = hc.width * 2;
+    hg.fillStyle = '#fff'; hg.shadowColor = '#fff'; hg.shadowOffsetX = off;
+    // the rectangle is drawn off the canvas so only its blurred shadow lands on it
+    for (const blur of [96, 48, 20]) { hg.shadowBlur = blur; hg.fillRect((hc.width - rw) / 2 - off, (hc.height - rh) / 2, rw, rh); }
+    M.halo.map = canvasTex(hc, { color: false });
+    panel.add(new THREE.Mesh(new THREE.PlaneGeometry(hw, hh), M.halo));
+  }
+  // the screens spill their color onto the grass and the stand
+  const spill = [1, -1].map((s) => {
+    const l = new THREE.PointLight(new THREE.Color(C.yellow), 1.8 * BB * BB, 9 * BB, 2);
+    l.position.set(0, 1.2 * BB, s * 1.0 * BB);
+    scene.add(l);
+    return l;
+  });
+
+  // ---------------------------------------------------------------- post-processing
+  const W0 = innerWidth, H0 = innerHeight;
+  const rt = new THREE.WebGLRenderTarget(W0 * pixelRatio, H0 * pixelRatio, {
+    type: THREE.HalfFloatType,
+    samples: renderer.capabilities.isWebGL2 ? (pixelRatio > 1.25 ? 2 : 4) : 0,
+  });
+  const composer = new EffectComposer(renderer, rt);
+  composer.setPixelRatio(pixelRatio);
+  composer.setSize(W0, H0);
+  composer.addPass(new RenderPass(scene, camera));
+  // Some graphics chips occasionally produce an invalid (NaN or infinite) pixel. The glow pass would
+  // smear one of those into a large black patch, so turn any invalid pixel into plain black first.
+  const badPixel = renderer.capabilities.isWebGL2
+    ? 'bool bad = any(isnan(c.rgb)) || any(isinf(c.rgb));'
+    : 'bool bad = !(c.r == c.r && c.g == c.g && c.b == c.b) || max(max(c.r, c.g), c.b) > 6.0e4;';
+  composer.addPass(new ShaderPass({
+    uniforms: { tDiffuse: { value: null } },
+    vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: `uniform sampler2D tDiffuse; varying vec2 vUv;
+      void main(){
+        vec4 c = texture2D(tDiffuse, vUv);
+        ${badPixel}
+        vec3 col = bad ? vec3(0.0) : min(max(c.rgb, vec3(0.0)), vec3(6.0e4));
+        gl_FragColor = vec4(col, 1.0);
+      }`,
+  }));
+  // strong glow on the lights; the threshold sits above the screen's whites so the type stays sharp
+  const bloom = new UnrealBloomPass(new THREE.Vector2(W0, H0), 0.75, 0.45, 0.92);
+  composer.addPass(bloom);
+  composer.addPass(new ShaderPass({
+    uniforms: { tDiffuse: { value: null }, uAmount: { value: 0.38 } },
+    vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: 'uniform sampler2D tDiffuse; uniform float uAmount; varying vec2 vUv; void main(){ vec4 c = texture2D(tDiffuse, vUv); vec2 d = (vUv - 0.5) * vec2(1.0, 0.92); float v = smoothstep(0.86, 0.22, length(d)); c.rgb *= mix(1.0 - uAmount, 1.0, v); gl_FragColor = c; }',
+  }));
+  composer.addPass(new OutputPass());
+
+  // ---------------------------------------------------------------- now playing
+  const liveEl = $('live');
+  let current = null, loadToken = 0;
+  const flip = { t: 1, next: null };
+  const white = new THREE.Color(1, 1, 1);
+  const glowColor = new THREE.Color(C.yellow);   // eases toward the current cover's color
+  // the glow color scaled to a target brightness (weighted like the bloom pass), capped so a very dark
+  // color does not blow out
+  function glowAt(out, lum) {
+    const l = 0.299 * glowColor.r + 0.587 * glowColor.g + 0.114 * glowColor.b;
+    return out.copy(glowColor).multiplyScalar(Math.min(8, lum / Math.max(l, 1e-3)));
+  }
+
+  function loadImage(src) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.decoding = 'async';
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = src;
+    });
+  }
+  // status: 'now' (playing), 'last' (the last scrobble) or 'idle' (a message, no track)
+  function buildTrack({ title = '', artist = '', status = 'now' }, img) {
+    const art = makeCanvas(640, 640);
+    if (img) drawCover(art, img); else drawPlaceholderArt(art);
+    const accent = accentOf(art);
+    return { title, artist, status, art, accent, accentCss: '#' + accent.getHexString() };
+  }
+  function applyTrack(tr) {
+    current = tr;
+    drawFace(tr); drawRibbon(tr); drawBoard(tr);
+    liveEl.textContent = tr.status === 'idle' ? tr.title : `${tr.status === 'now' ? 'Now playing' : 'Last played'}: ${tr.title} by ${tr.artist}`;
+  }
+  // swaps what the billboard shows; the panel turns half a revolution and the new cover appears edge-on.
+  // `art` is an image URL, or a list of them to try in order.
+  async function setNowPlaying(info = {}) {
+    const token = ++loadToken;
+    let img = null;
+    for (const src of [].concat(info.art || [])) {
+      try { img = await loadImage(src); break; } catch (err) { /* try the next one */ }
+    }
+    if (token !== loadToken) return;
+    const tr = buildTrack(info, img);
+    if (reduceMotion || !current) { applyTrack(tr); return; }
+    if (!(flip.t < 1 && flip.next)) flip.t = 0;
+    flip.next = tr;
+  }
+  function stepFlip(dt) {
+    if (flip.t >= 1) return false;
+    flip.t = Math.min(1, flip.t + dt / 1.1);
+    const a = easeInOut(flip.t) * Math.PI;
+    if (flip.next && a >= Math.PI / 2) { applyTrack(flip.next); flip.next = null; }
+    panel.rotation.y = flip.t >= 1 ? 0 : a;
+    return true;
+  }
+  window.setNowPlaying = setNowPlaying;
+
+  // ---------------------------------------------------------------- Last.fm
+  const IDLE = {
+    noUser: { status: 'idle', artist: 'Last.fm', title: 'Enter your username below' },
+    waiting: { status: 'idle', artist: 'Last.fm', title: 'Waiting for music…' },
+    notFound: { status: 'idle', artist: 'Last.fm', title: 'User not found' },
+  };
+  const dock = $('dock'), userIn = $('user'), dockStatus = $('dockStatus');
+  const store = {
+    get() { try { return localStorage.getItem('nowPlaying.user') || ''; } catch (err) { return ''; } },
+    set(v) { try { localStorage.setItem('nowPlaying.user', v); } catch (err) { /* storage blocked */ } },
+  };
+  let lfmUser = (new URLSearchParams(location.search).get('user') || store.get()).trim();
+  let shownKey = '', pollTimer = 0, pollToken = 0;
+
+  const keyOf = (info) => [info.status, info.artist, info.title, [].concat(info.art || [])[0] || ''].join('\u0001');
+  // flip the billboard only when something on it changes
+  function show(info) {
+    const k = keyOf(info);
+    if (k === shownKey) return;
+    shownKey = k;
+    setNowPlaying(info);
+  }
+  function setStatus(text, state) { dockStatus.textContent = text; dock.dataset.state = state; }
+  // the 770 px cover first, then the 300 px one Last.fm lists
+  function artUrls(url) {
+    if (!url || url.includes(NO_ART)) return null;
+    const big = url.replace(/\/i\/u\/[^/]+\//, '/i/u/770x0/');
+    return big === url ? [url] : [big, url];
+  }
+  async function poll() {
+    clearTimeout(pollTimer);
+    if (!lfmUser) return;
+    const token = ++pollToken;
+    let wait = POLL_MS;
+    const url = 'https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&limit=1&format=json'
+      + `&user=${encodeURIComponent(lfmUser)}&api_key=${LASTFM_KEY}`;
+    try {
+      const res = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout ? AbortSignal.timeout(8000) : undefined });
+      const data = await res.json();
+      if (token !== pollToken) return;
+      const t = data.recenttracks && [].concat(data.recenttracks.track || [])[0];
+      if (data.error === 6) {
+        show(IDLE.notFound);
+        setStatus('User not found', 'error');
+      } else if (!data.recenttracks) {
+        // Last.fm fails now and then ("Operation failed"); keep the last good result on the billboard
+        setStatus('Retrying…', 'error');
+        if (data.error === 29) wait = POLL_MS * 10;   // rate limited: back off for a bit
+      } else if (!t) {
+        show(IDLE.waiting);
+        setStatus('Nothing scrobbled yet', 'idle');
+      } else {
+        const playing = !!(t['@attr'] && t['@attr'].nowplaying === 'true');
+        const img = (t.image || []).find((i) => i.size === 'extralarge') || (t.image || []).slice(-1)[0];
+        show({
+          status: playing ? 'now' : 'last',
+          artist: (t.artist && (t.artist['#text'] || t.artist.name)) || '',
+          title: t.name || '',
+          art: artUrls(img && img['#text']),
+        });
+        setStatus(playing ? 'Live' : 'Not playing right now', playing ? 'live' : 'idle');
+      }
+    } catch (err) {
+      if (token !== pollToken) return;
+      setStatus('Can’t reach Last.fm, retrying', 'error');
+    }
+    if (token === pollToken) pollTimer = setTimeout(poll, wait);
+  }
+  function connect(name) {
+    lfmUser = name;
+    store.set(name);
+    if (!name) {
+      pollToken++; clearTimeout(pollTimer);
+      show(IDLE.noUser);
+      setStatus('Not connected', 'off');
+      return;
+    }
+    setStatus('Connecting…', 'idle');
+    poll();
+  }
+  dock.addEventListener('submit', (e) => {
+    e.preventDefault();
+    connect(userIn.value.trim());
+    userIn.blur();
+  });
+  // check right away when the tab comes back, since browsers slow timers in background tabs
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && lfmUser) poll(); });
+
+  // the box fades back after a few seconds without the pointer, so the scene stays clean on a display
+  let idleTimer = 0;
+  const wake = () => {
+    document.body.classList.remove('is-idle');
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => { if (lfmUser && document.activeElement !== userIn) document.body.classList.add('is-idle'); }, 4000);
+  };
+  ['pointermove', 'pointerdown', 'keydown'].forEach((t) => window.addEventListener(t, wake, { passive: true }));
+
+  userIn.value = lfmUser;
+  const first = lfmUser ? IDLE.waiting : IDLE.noUser;
+  shownKey = keyOf(first);
+  applyTrack(buildTrack(first, null));
+  connect(lfmUser);
+  wake();
+
+  // ---------------------------------------------------------------- camera
+  const deg = THREE.MathUtils.degToRad;
+  const VIEW = { az: deg(-18), pol: deg(77) };
+  const WIDE = { az: deg(34), pol: deg(80), dist: 26, fov: 56 };
+  const BASE_FOV = 40;
+  const target = new THREE.Vector3(0, 2.0 * BB, 0);
+  let fitDist = 9, tween = null, userMoved = false;
+
+  const controls = new OrbitControls(camera, canvas);
+  controls.target.copy(target);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.enablePan = false;
+  controls.minDistance = 2.5 * BB;
+  controls.maxDistance = 40;
+  controls.minPolarAngle = 0;
+  controls.maxPolarAngle = deg(86);
+  controls.rotateSpeed = 0.7;
+  controls.zoomSpeed = 0.8;
+  controls.addEventListener('start', () => { userMoved = true; tween = null; });
+
+  function place(v, dist) {
+    camera.position.setFromSphericalCoords(dist, v.pol, v.az).add(target);
+    camera.lookAt(target);
+    camera.fov = v.fov || BASE_FOV;
+    camera.updateProjectionMatrix();
+  }
+  function goTo(v, dist, dur) {
+    const from = new THREE.Spherical().setFromVector3(camera.position.clone().sub(target));
+    let dTh = v.az - from.theta;
+    dTh = Math.atan2(Math.sin(dTh), Math.cos(dTh));
+    tween = {
+      r0: from.radius, p0: from.phi, t0: from.theta, f0: camera.fov,
+      r1: dist, p1: v.pol, t1: from.theta + dTh, f1: v.fov || BASE_FOV,
+      t: 0, dur: reduceMotion ? 0.0001 : dur,
+    };
+  }
+  function stepTween(dt) {
+    if (!tween) return;
+    tween.t = Math.min(1, tween.t + dt / tween.dur);
+    const e = easeInOut(tween.t);
+    camera.position.setFromSphericalCoords(lerp(tween.r0, tween.r1, e), lerp(tween.p0, tween.p1, e), lerp(tween.t0, tween.t1, e)).add(target);
+    camera.lookAt(target);
+    camera.fov = lerp(tween.f0, tween.f1, e);
+    camera.updateProjectionMatrix();
+    if (tween.t >= 1) tween = null;
+  }
+
+  // ---------------------------------------------------------------- layout
+  let sizeKey = '';
+  function layout() {
+    const W = innerWidth, Hh = innerHeight;
+    const k = `${W}x${Hh}@${pixelRatio}`;
+    if (k !== sizeKey) {
+      sizeKey = k;
+      renderer.setPixelRatio(pixelRatio);
+      renderer.setSize(W, Hh, false);
+      composer.setPixelRatio(pixelRatio);
+      composer.setSize(W, Hh);
+    }
+    camera.aspect = W / Hh;
+    camera.updateProjectionMatrix();
+    // the whole billboard fills about 60% of the height, and at most 60% of the width on narrow screens
+    const t = Math.tan(deg(BASE_FOV / 2));
+    const dV = ((POLE_H + FRAME_H) * BB) / (2 * t * 0.72);
+    const dH = (FRAME_W * BB) / (2 * t * (W / Hh) * 0.8);
+    fitDist = clamp(Math.max(dV, dH), 5, 32);
+  }
+  function applyFit() {
+    if (userMoved || tween) return;
+    const off = camera.position.clone().sub(target).setLength(fitDist);
+    camera.position.copy(target).add(off);
+  }
+  layout();
+  if (reduceMotion) place(VIEW, fitDist); else place(WIDE, WIDE.dist);
+  window.addEventListener('resize', () => { layout(); applyFit(); });
+
+  // ---------------------------------------------------------------- main loop
+  renderer.setClearColor(new THREE.Color(C.night), 1);
+  try { renderer.compile(scene, camera); } catch (err) { /* compile lazily */ }
+
+  // redraw the painted textures once the web fonts arrive
+  if (document.fonts && document.fonts.load) {
+    Promise.all([
+      document.fonts.load(`850 124px "Archivo"`),
+      document.fonts.load(`600 24px "Martian Mono"`),
+    ]).then(() => { if (current) applyTrack(current); }).catch(() => {});
+  }
+
+  const introStart = performance.now();
+  let introStarted = reduceMotion;
+  let lastT = performance.now(), firstFrame = true;
+  let perfT = 0, perfN = 0, perfSkip = 3;
+
+  function frame(now) {
+    requestAnimationFrame(frame);
+    const dt = Math.min(0.05, Math.max(0, (now - lastT) / 1000));
+    lastT = now;
+
+    if (!introStarted && now - introStart > 250) { introStarted = true; if (!userMoved) goTo(VIEW, fitDist, 2.8); }
+
+    const turning = stepFlip(dt);
+    stepTween(dt);
+    controls.update();
+
+    crowdMat.uniforms.uTime.value = now / 1000;
+    crowdMat.uniforms.uScale.value = (innerHeight * pixelRatio) / 2 / Math.tan(deg(camera.fov / 2));
+    ribbonTex.offset.x = (ribbonTex.offset.x + dt * 0.035) % 1;
+    // the glow fades into each new cover's color and drifts gently: three slow waves that never line up,
+    // so there is no regular beat
+    if (current) {
+      glowColor.lerp(current.accent, reduceMotion ? 1 : 1 - Math.exp(-dt * 2.5));
+      const s = now / 1000;
+      const drift = (p) => (reduceMotion ? 1 : 1 + GLOW.drift * (0.5 * Math.sin(s * 0.31 + p) + 0.3 * Math.sin(s * 0.53 + p * 2.1) + 0.2 * Math.sin(s * 0.83 + p * 0.7)));
+      glowAt(M.trim.color, GLOW.trim * drift(0));
+      glowAt(M.side.color, GLOW.side * drift(0));
+      glowAt(M.halo.color, GLOW.halo * drift(1.9));
+      spill.forEach((l) => l.color.copy(glowColor));
+      pool.material.color.copy(white).lerp(glowColor, 0.8);
+    }
+
+    // the scene only moves when the panel turns, so the shadows are redrawn only then
+    if (firstFrame || turning) renderer.shadowMap.needsUpdate = true;
+    composer.render(dt);
+
+    if (firstFrame) { firstFrame = false; bootEl.hidden = true; }
+
+    // keep the frame rate up on slower devices
+    if (perfSkip > 0) { perfSkip -= dt; return; }
+    perfT += dt; perfN++;
+    if (perfT > 2.5) {
+      const avg = perfT / perfN;
+      if (avg > 1 / 30 && pixelRatio > 1) { pixelRatio = Math.max(1, pixelRatio - 0.25); layout(); }
+      perfT = 0; perfN = 0;
+    }
+  }
+  requestAnimationFrame(frame);
+}
+</script>
+</body>
+</html>
